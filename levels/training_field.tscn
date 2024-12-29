@@ -1,0 +1,738 @@
+[gd_scene load_steps=61 format=3 uid="uid://ra102m6cfxw6"]
+
+[ext_resource type="PackedScene" uid="uid://btv0a42cgxt8g" path="res://levels/WE_test.tscn" id="1_ryurx"]
+[ext_resource type="Material" uid="uid://cn1gsy15bkaff" path="res://materials/grid.tres" id="2_0gpye"]
+[ext_resource type="Texture2D" uid="uid://ivvpsi314b34" path="res://textures/grid.jpg" id="3_j7g8t"]
+[ext_resource type="PackedScene" uid="uid://c3ffql15mo0aj" path="res://controllers/fps_controller.tscn" id="4_rt82l"]
+[ext_resource type="Script" path="res://addons/cyclops_level_builder/nodes/cyclops_block.gd" id="5_q7nm1"]
+[ext_resource type="Script" path="res://addons/cyclops_level_builder/resources/data_vector_byte.gd" id="6_tgn5g"]
+[ext_resource type="Script" path="res://addons/cyclops_level_builder/resources/data_vector_int.gd" id="7_un7br"]
+[ext_resource type="Script" path="res://addons/cyclops_level_builder/resources/data_vector_float.gd" id="8_lac2u"]
+[ext_resource type="Script" path="res://addons/cyclops_level_builder/resources/mesh_vector_data.gd" id="9_5mk51"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_gd0ev"]
+material = ExtResource("2_0gpye")
+size = Vector3(40, 0.5, 40)
+
+[sub_resource type="ConcavePolygonShape3D" id="ConcavePolygonShape3D_l3jgu"]
+data = PackedVector3Array(-20, 0.25, 20, 20, 0.25, 20, -20, -0.25, 20, 20, 0.25, 20, 20, -0.25, 20, -20, -0.25, 20, 20, 0.25, -20, -20, 0.25, -20, 20, -0.25, -20, -20, 0.25, -20, -20, -0.25, -20, 20, -0.25, -20, 20, 0.25, 20, 20, 0.25, -20, 20, -0.25, 20, 20, 0.25, -20, 20, -0.25, -20, 20, -0.25, 20, -20, 0.25, -20, -20, 0.25, 20, -20, -0.25, -20, -20, 0.25, 20, -20, -0.25, 20, -20, -0.25, -20, 20, 0.25, 20, -20, 0.25, 20, 20, 0.25, -20, -20, 0.25, 20, -20, 0.25, -20, 20, 0.25, -20, -20, -0.25, 20, 20, -0.25, 20, -20, -0.25, -20, 20, -0.25, 20, 20, -0.25, -20, -20, -0.25, -20)
+
+[sub_resource type="Shader" id="Shader_cwof1"]
+code = "// NOTE: Shader automatically converted from Godot Engine 4.1.dev4's StandardMaterial3D.
+
+shader_type spatial;
+render_mode blend_mix,depth_draw_opaque,cull_back,diffuse_burley,specular_schlick_ggx;
+uniform vec4 albedo : source_color;
+uniform sampler2D texture_albedo : source_color,filter_linear_mipmap,repeat_enable;
+uniform float point_size : hint_range(0,128);
+uniform float roughness : hint_range(0,1);
+uniform sampler2D texture_metallic : hint_default_white,filter_linear_mipmap,repeat_enable;
+uniform vec4 metallic_texture_channel;
+uniform sampler2D texture_roughness : hint_roughness_r,filter_linear_mipmap,repeat_enable;
+uniform float specular;
+uniform float metallic;
+varying vec3 uv1_triplanar_pos;
+uniform float uv1_blend_sharpness;
+varying vec3 uv1_power_normal;
+uniform vec3 uv1_scale;
+uniform vec3 uv1_offset;
+uniform vec3 uv2_scale;
+uniform vec3 uv2_offset;
+
+
+void vertex() {
+	TANGENT = vec3(0.0,0.0,-1.0) * abs(NORMAL.x);
+	TANGENT+= vec3(1.0,0.0,0.0) * abs(NORMAL.y);
+	TANGENT+= vec3(1.0,0.0,0.0) * abs(NORMAL.z);
+	TANGENT = normalize(TANGENT);
+	BINORMAL = vec3(0.0,1.0,0.0) * abs(NORMAL.x);
+	BINORMAL+= vec3(0.0,0.0,-1.0) * abs(NORMAL.y);
+	BINORMAL+= vec3(0.0,1.0,0.0) * abs(NORMAL.z);
+	BINORMAL = normalize(BINORMAL);
+	uv1_power_normal=pow(abs(NORMAL),vec3(uv1_blend_sharpness));
+	uv1_triplanar_pos = VERTEX * uv1_scale + uv1_offset;
+	uv1_power_normal/=dot(uv1_power_normal,vec3(1.0));
+	uv1_triplanar_pos *= vec3(1.0,-1.0, 1.0);
+}
+
+vec4 triplanar_texture(sampler2D p_sampler,vec3 p_weights,vec3 p_triplanar_pos) {
+	vec4 samp=vec4(0.0);
+	samp+= texture(p_sampler,p_triplanar_pos.xy) * p_weights.z;
+	samp+= texture(p_sampler,p_triplanar_pos.xz) * p_weights.y;
+	samp+= texture(p_sampler,p_triplanar_pos.zy * vec2(-1.0,1.0)) * p_weights.x;
+	return samp;
+}
+
+void fragment() {
+	vec4 albedo_tex = triplanar_texture(texture_albedo,uv1_power_normal,uv1_triplanar_pos);
+	ALBEDO = (albedo.rgb * albedo_tex.r) + albedo_tex.g + albedo_tex.b;
+	float metallic_tex = dot(triplanar_texture(texture_metallic,uv1_power_normal,uv1_triplanar_pos),metallic_texture_channel);
+	METALLIC = metallic_tex * metallic;
+	vec4 roughness_texture_channel = vec4(1.0,0.0,0.0,0.0);
+	float roughness_tex = dot(triplanar_texture(texture_roughness,uv1_power_normal,uv1_triplanar_pos),roughness_texture_channel);
+	ROUGHNESS = (1.0 - albedo_tex.g) * roughness;
+	SPECULAR = specular;
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_0racc"]
+render_priority = 0
+shader = SubResource("Shader_cwof1")
+shader_parameter/albedo = Color(1, 1, 0, 1)
+shader_parameter/point_size = 1.0
+shader_parameter/roughness = 0.5
+shader_parameter/metallic_texture_channel = null
+shader_parameter/specular = 0.5
+shader_parameter/metallic = 0.0
+shader_parameter/uv1_blend_sharpness = 1.0
+shader_parameter/uv1_scale = Vector3(0.5, 0.5, 0.5)
+shader_parameter/uv1_offset = Vector3(0.5, 0.5, 0.5)
+shader_parameter/uv2_scale = Vector3(1, 1, 1)
+shader_parameter/uv2_offset = Vector3(0, 0, 0)
+shader_parameter/texture_albedo = ExtResource("3_j7g8t")
+shader_parameter/texture_roughness = ExtResource("3_j7g8t")
+
+[sub_resource type="BoxMesh" id="BoxMesh_xc4gq"]
+material = SubResource("ShaderMaterial_0racc")
+size = Vector3(2, 2, 2)
+
+[sub_resource type="ConcavePolygonShape3D" id="ConcavePolygonShape3D_vp4dy"]
+data = PackedVector3Array(-1, 1, 1, 1, 1, 1, -1, -1, 1, 1, 1, 1, 1, -1, 1, -1, -1, 1, 1, 1, -1, -1, 1, -1, 1, -1, -1, -1, 1, -1, -1, -1, -1, 1, -1, -1, 1, 1, 1, 1, 1, -1, 1, -1, 1, 1, 1, -1, 1, -1, -1, 1, -1, 1, -1, 1, -1, -1, 1, 1, -1, -1, -1, -1, 1, 1, -1, -1, 1, -1, -1, -1, 1, 1, 1, -1, 1, 1, 1, 1, -1, -1, 1, 1, -1, 1, -1, 1, 1, -1, -1, -1, 1, 1, -1, 1, -1, -1, -1, 1, -1, 1, 1, -1, -1, -1, -1, -1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_62u37"]
+render_priority = 0
+shader = SubResource("Shader_cwof1")
+shader_parameter/albedo = Color(0, 0.67451, 0, 1)
+shader_parameter/point_size = 1.0
+shader_parameter/roughness = 0.5
+shader_parameter/metallic_texture_channel = null
+shader_parameter/specular = 0.5
+shader_parameter/metallic = 0.0
+shader_parameter/uv1_blend_sharpness = 1.0
+shader_parameter/uv1_scale = Vector3(0.5, 0.5, 0.5)
+shader_parameter/uv1_offset = Vector3(1, 0.5, 0.5)
+shader_parameter/uv2_scale = Vector3(1, 1, 1)
+shader_parameter/uv2_offset = Vector3(0, 0, 0)
+shader_parameter/texture_albedo = ExtResource("3_j7g8t")
+shader_parameter/texture_roughness = ExtResource("3_j7g8t")
+
+[sub_resource type="PrismMesh" id="PrismMesh_rutao"]
+material = SubResource("ShaderMaterial_62u37")
+left_to_right = 0.0
+size = Vector3(8, 2, 2)
+
+[sub_resource type="ConcavePolygonShape3D" id="ConcavePolygonShape3D_j6kcl"]
+data = PackedVector3Array(-4, 1, 1, 4, -1, 1, -4, -1, 1, -4, 1, -1, -4, -1, -1, 4, -1, -1, -4, 1, 1, -4, 1, -1, 4, -1, 1, -4, 1, -1, 4, -1, -1, 4, -1, 1, -4, 1, -1, -4, 1, 1, -4, -1, -1, -4, 1, 1, -4, -1, 1, -4, -1, -1, -4, -1, 1, 4, -1, 1, -4, -1, -1, 4, -1, 1, 4, -1, -1, -4, -1, -1)
+
+[sub_resource type="PrismMesh" id="PrismMesh_xgyvt"]
+material = SubResource("ShaderMaterial_62u37")
+left_to_right = 0.0
+size = Vector3(8, 4, 2)
+
+[sub_resource type="ConcavePolygonShape3D" id="ConcavePolygonShape3D_3on7f"]
+data = PackedVector3Array(-4, 2, 1, 4, -2, 1, -4, -2, 1, -4, 2, -1, -4, -2, -1, 4, -2, -1, -4, 2, 1, -4, 2, -1, 4, -2, 1, -4, 2, -1, 4, -2, -1, 4, -2, 1, -4, 2, -1, -4, 2, 1, -4, -2, -1, -4, 2, 1, -4, -2, 1, -4, -2, -1, -4, -2, 1, 4, -2, 1, -4, -2, -1, 4, -2, 1, 4, -2, -1, -4, -2, -1)
+
+[sub_resource type="PrismMesh" id="PrismMesh_pjxqm"]
+material = SubResource("ShaderMaterial_62u37")
+left_to_right = 0.0
+size = Vector3(8, 6, 2)
+
+[sub_resource type="ConcavePolygonShape3D" id="ConcavePolygonShape3D_twqj1"]
+data = PackedVector3Array(-4, 3, 1, 4, -3, 1, -4, -3, 1, -4, 3, -1, -4, -3, -1, 4, -3, -1, -4, 3, 1, -4, 3, -1, 4, -3, 1, -4, 3, -1, 4, -3, -1, 4, -3, 1, -4, 3, -1, -4, 3, 1, -4, -3, -1, -4, 3, 1, -4, -3, 1, -4, -3, -1, -4, -3, 1, 4, -3, 1, -4, -3, -1, 4, -3, 1, 4, -3, -1, -4, -3, -1)
+
+[sub_resource type="PrismMesh" id="PrismMesh_7vbvq"]
+material = SubResource("ShaderMaterial_62u37")
+left_to_right = 0.0
+size = Vector3(8, 8, 2)
+
+[sub_resource type="ConcavePolygonShape3D" id="ConcavePolygonShape3D_giwo7"]
+data = PackedVector3Array(-4, 4, 1, 4, -4, 1, -4, -4, 1, -4, 4, -1, -4, -4, -1, 4, -4, -1, -4, 4, 1, -4, 4, -1, 4, -4, 1, -4, 4, -1, 4, -4, -1, 4, -4, 1, -4, 4, -1, -4, 4, 1, -4, -4, -1, -4, 4, 1, -4, -4, 1, -4, -4, -1, -4, -4, 1, 4, -4, 1, -4, -4, -1, 4, -4, 1, 4, -4, -1, -4, -4, -1)
+
+[sub_resource type="Shader" id="Shader_virf7"]
+code = "// NOTE: Shader automatically converted from Godot Engine 4.1.dev4's StandardMaterial3D.
+
+shader_type spatial;
+render_mode blend_mix,depth_draw_opaque,cull_back,diffuse_burley,specular_schlick_ggx;
+uniform vec4 albedo : source_color;
+uniform sampler2D texture_albedo : source_color,filter_linear_mipmap,repeat_enable;
+uniform float point_size : hint_range(0,128);
+uniform float roughness : hint_range(0,1);
+uniform sampler2D texture_metallic : hint_default_white,filter_linear_mipmap,repeat_enable;
+uniform vec4 metallic_texture_channel;
+uniform sampler2D texture_roughness : hint_roughness_r,filter_linear_mipmap,repeat_enable;
+uniform float specular;
+uniform float metallic;
+varying vec3 uv1_triplanar_pos;
+uniform float uv1_blend_sharpness;
+varying vec3 uv1_power_normal;
+uniform vec3 uv1_scale;
+uniform vec3 uv1_offset;
+uniform vec3 uv2_scale;
+uniform vec3 uv2_offset;
+
+
+void vertex() {
+	TANGENT = vec3(0.0,0.0,-1.0) * abs(NORMAL.x);
+	TANGENT+= vec3(1.0,0.0,0.0) * abs(NORMAL.y);
+	TANGENT+= vec3(1.0,0.0,0.0) * abs(NORMAL.z);
+	TANGENT = normalize(TANGENT);
+	BINORMAL = vec3(0.0,1.0,0.0) * abs(NORMAL.x);
+	BINORMAL+= vec3(0.0,0.0,-1.0) * abs(NORMAL.y);
+	BINORMAL+= vec3(0.0,1.0,0.0) * abs(NORMAL.z);
+	BINORMAL = normalize(BINORMAL);
+	uv1_power_normal=pow(abs(NORMAL),vec3(uv1_blend_sharpness));
+	uv1_triplanar_pos = VERTEX * uv1_scale + uv1_offset;
+	uv1_power_normal/=dot(uv1_power_normal,vec3(1.0));
+	uv1_triplanar_pos *= vec3(1.0,-1.0, 1.0);
+}
+
+vec4 triplanar_texture(sampler2D p_sampler,vec3 p_weights,vec3 p_triplanar_pos) {
+	vec4 samp=vec4(0.0);
+	samp+= texture(p_sampler,p_triplanar_pos.xy) * p_weights.z;
+	samp+= texture(p_sampler,p_triplanar_pos.xz) * p_weights.y;
+	samp+= texture(p_sampler,p_triplanar_pos.zy * vec2(-1.0,1.0)) * p_weights.x;
+	return samp;
+}
+
+void fragment() {
+	vec4 albedo_tex = triplanar_texture(texture_albedo,uv1_power_normal,uv1_triplanar_pos);
+	ALBEDO = (albedo.rgb * albedo_tex.r) + albedo_tex.g + albedo_tex.b;
+	float metallic_tex = dot(triplanar_texture(texture_metallic,uv1_power_normal,uv1_triplanar_pos),metallic_texture_channel);
+	METALLIC = metallic_tex * metallic;
+	vec4 roughness_texture_channel = vec4(1.0,0.0,0.0,0.0);
+	float roughness_tex = dot(triplanar_texture(texture_roughness,uv1_power_normal,uv1_triplanar_pos),roughness_texture_channel);
+	ROUGHNESS = (1.0 - albedo_tex.g) * roughness;
+	SPECULAR = specular;
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_suixh"]
+render_priority = 0
+shader = SubResource("Shader_virf7")
+shader_parameter/albedo = Color(0.458824, 0.811765, 0.282353, 1)
+shader_parameter/point_size = 1.0
+shader_parameter/roughness = 0.0
+shader_parameter/metallic_texture_channel = null
+shader_parameter/specular = 0.5
+shader_parameter/metallic = 0.0
+shader_parameter/uv1_blend_sharpness = 1.0
+shader_parameter/uv1_scale = Vector3(0.5, 0.5, 0.5)
+shader_parameter/uv1_offset = Vector3(0, 0, 0)
+shader_parameter/uv2_scale = Vector3(1, 1, 1)
+shader_parameter/uv2_offset = Vector3(0, 0, 0)
+shader_parameter/texture_albedo = ExtResource("3_j7g8t")
+shader_parameter/texture_roughness = ExtResource("3_j7g8t")
+
+[sub_resource type="BoxMesh" id="BoxMesh_kfqdp"]
+material = SubResource("ShaderMaterial_suixh")
+size = Vector3(4, 0.5, 4)
+
+[sub_resource type="ConcavePolygonShape3D" id="ConcavePolygonShape3D_bfvwj"]
+data = PackedVector3Array(-2, 0.25, 2, 2, 0.25, 2, -2, -0.25, 2, 2, 0.25, 2, 2, -0.25, 2, -2, -0.25, 2, 2, 0.25, -2, -2, 0.25, -2, 2, -0.25, -2, -2, 0.25, -2, -2, -0.25, -2, 2, -0.25, -2, 2, 0.25, 2, 2, 0.25, -2, 2, -0.25, 2, 2, 0.25, -2, 2, -0.25, -2, 2, -0.25, 2, -2, 0.25, -2, -2, 0.25, 2, -2, -0.25, -2, -2, 0.25, 2, -2, -0.25, 2, -2, -0.25, -2, 2, 0.25, 2, -2, 0.25, 2, 2, 0.25, -2, -2, 0.25, 2, -2, 0.25, -2, 2, 0.25, -2, -2, -0.25, 2, 2, -0.25, 2, -2, -0.25, -2, 2, -0.25, 2, 2, -0.25, -2, -2, -0.25, -2)
+
+[sub_resource type="ConcavePolygonShape3D" id="ConcavePolygonShape3D_al2qp"]
+data = PackedVector3Array(-2, 0.25, 2, 2, 0.25, 2, -2, -0.25, 2, 2, 0.25, 2, 2, -0.25, 2, -2, -0.25, 2, 2, 0.25, -2, -2, 0.25, -2, 2, -0.25, -2, -2, 0.25, -2, -2, -0.25, -2, 2, -0.25, -2, 2, 0.25, 2, 2, 0.25, -2, 2, -0.25, 2, 2, 0.25, -2, 2, -0.25, -2, 2, -0.25, 2, -2, 0.25, -2, -2, 0.25, 2, -2, -0.25, -2, -2, 0.25, 2, -2, -0.25, 2, -2, -0.25, -2, 2, 0.25, 2, -2, 0.25, 2, 2, 0.25, -2, -2, 0.25, 2, -2, 0.25, -2, 2, 0.25, -2, -2, -0.25, 2, 2, -0.25, 2, -2, -0.25, -2, 2, -0.25, 2, 2, -0.25, -2, -2, -0.25, -2)
+
+[sub_resource type="Shader" id="Shader_rqdk3"]
+code = "// NOTE: Shader automatically converted from Godot Engine 4.1.dev4's StandardMaterial3D.
+
+shader_type spatial;
+render_mode blend_mix,depth_draw_opaque,cull_back,diffuse_burley,specular_schlick_ggx;
+uniform vec4 albedo : source_color;
+uniform sampler2D texture_albedo : source_color,filter_linear_mipmap,repeat_enable;
+uniform float point_size : hint_range(0,128);
+uniform float roughness : hint_range(0,1);
+uniform sampler2D texture_metallic : hint_default_white,filter_linear_mipmap,repeat_enable;
+uniform vec4 metallic_texture_channel;
+uniform sampler2D texture_roughness : hint_roughness_r,filter_linear_mipmap,repeat_enable;
+uniform float specular;
+uniform float metallic;
+varying vec3 uv1_triplanar_pos;
+uniform float uv1_blend_sharpness;
+varying vec3 uv1_power_normal;
+uniform vec3 uv1_scale;
+uniform vec3 uv1_offset;
+uniform vec3 uv2_scale;
+uniform vec3 uv2_offset;
+
+
+void vertex() {
+	TANGENT = vec3(0.0,0.0,-1.0) * abs(NORMAL.x);
+	TANGENT+= vec3(1.0,0.0,0.0) * abs(NORMAL.y);
+	TANGENT+= vec3(1.0,0.0,0.0) * abs(NORMAL.z);
+	TANGENT = normalize(TANGENT);
+	BINORMAL = vec3(0.0,1.0,0.0) * abs(NORMAL.x);
+	BINORMAL+= vec3(0.0,0.0,-1.0) * abs(NORMAL.y);
+	BINORMAL+= vec3(0.0,1.0,0.0) * abs(NORMAL.z);
+	BINORMAL = normalize(BINORMAL);
+	uv1_power_normal=pow(abs(NORMAL),vec3(uv1_blend_sharpness));
+	uv1_triplanar_pos = VERTEX * uv1_scale + uv1_offset;
+	uv1_power_normal/=dot(uv1_power_normal,vec3(1.0));
+	uv1_triplanar_pos *= vec3(1.0,-1.0, 1.0);
+}
+
+vec4 triplanar_texture(sampler2D p_sampler,vec3 p_weights,vec3 p_triplanar_pos) {
+	vec4 samp=vec4(0.0);
+	samp+= texture(p_sampler,p_triplanar_pos.xy) * p_weights.z;
+	samp+= texture(p_sampler,p_triplanar_pos.xz) * p_weights.y;
+	samp+= texture(p_sampler,p_triplanar_pos.zy * vec2(-1.0,1.0)) * p_weights.x;
+	return samp;
+}
+
+void fragment() {
+	vec4 albedo_tex = triplanar_texture(texture_albedo,uv1_power_normal,uv1_triplanar_pos);
+	ALBEDO = (albedo.rgb * albedo_tex.r) + albedo_tex.g + albedo_tex.b;
+	float metallic_tex = dot(triplanar_texture(texture_metallic,uv1_power_normal,uv1_triplanar_pos),metallic_texture_channel);
+	METALLIC = metallic_tex * metallic;
+	vec4 roughness_texture_channel = vec4(1.0,0.0,0.0,0.0);
+	float roughness_tex = dot(triplanar_texture(texture_roughness,uv1_power_normal,uv1_triplanar_pos),roughness_texture_channel);
+	ROUGHNESS = (1.0 - albedo_tex.g) * roughness;
+	SPECULAR = specular;
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_v15et"]
+render_priority = 0
+shader = SubResource("Shader_rqdk3")
+shader_parameter/albedo = Color(0.6875, 0, 0.75, 1)
+shader_parameter/point_size = 1.0
+shader_parameter/roughness = 0.83
+shader_parameter/metallic_texture_channel = null
+shader_parameter/specular = 0.5
+shader_parameter/metallic = 0.0
+shader_parameter/uv1_blend_sharpness = 1.0
+shader_parameter/uv1_scale = Vector3(0.5, 0.5, 0.5)
+shader_parameter/uv1_offset = Vector3(0.25, 0.375, -0.25)
+shader_parameter/uv2_scale = Vector3(1, 1, 1)
+shader_parameter/uv2_offset = Vector3(0, 0, 0)
+shader_parameter/texture_albedo = ExtResource("3_j7g8t")
+shader_parameter/texture_roughness = ExtResource("3_j7g8t")
+
+[sub_resource type="BoxMesh" id="BoxMesh_rqjw5"]
+material = SubResource("ShaderMaterial_v15et")
+size = Vector3(1, 1.5, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_srpnv"]
+render_priority = 0
+shader = SubResource("Shader_rqdk3")
+shader_parameter/albedo = Color(0.6875, 0, 0.75, 1)
+shader_parameter/point_size = 1.0
+shader_parameter/roughness = 0.83
+shader_parameter/metallic_texture_channel = null
+shader_parameter/specular = 0.5
+shader_parameter/metallic = 0.0
+shader_parameter/uv1_blend_sharpness = 1.0
+shader_parameter/uv1_scale = Vector3(0.5, 0.5, 0.5)
+shader_parameter/uv1_offset = Vector3(0.25, 0.45, -0.25)
+shader_parameter/uv2_scale = Vector3(1, 1, 1)
+shader_parameter/uv2_offset = Vector3(0, 0, 0)
+shader_parameter/texture_albedo = ExtResource("3_j7g8t")
+shader_parameter/texture_roughness = ExtResource("3_j7g8t")
+
+[sub_resource type="BoxMesh" id="BoxMesh_m0fo3"]
+material = SubResource("ShaderMaterial_srpnv")
+size = Vector3(1, 1.8, 1)
+
+[sub_resource type="Resource" id="Resource_tq5bl"]
+script = ExtResource("6_tgn5g")
+data = PackedByteArray(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+name = &"selected"
+category = ""
+data_type = 0
+stride = 1
+
+[sub_resource type="Resource" id="Resource_nhoso"]
+script = ExtResource("7_un7br")
+data = PackedInt32Array(-1, -1, -1, -1, -1, -1)
+name = &"material_index"
+category = ""
+data_type = 1
+stride = 1
+
+[sub_resource type="Resource" id="Resource_guolx"]
+script = ExtResource("6_tgn5g")
+data = PackedByteArray(1, 1, 1, 1, 1, 1)
+name = &"visible"
+category = ""
+data_type = 0
+stride = 1
+
+[sub_resource type="Resource" id="Resource_dt5c3"]
+script = ExtResource("8_lac2u")
+data = PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+name = &"color"
+category = ""
+data_type = 4
+stride = 4
+
+[sub_resource type="Resource" id="Resource_44u87"]
+script = ExtResource("8_lac2u")
+data = PackedFloat32Array(1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0)
+name = &"uv_transform"
+category = ""
+data_type = 8
+stride = 6
+
+[sub_resource type="Resource" id="Resource_45ub4"]
+script = ExtResource("6_tgn5g")
+data = PackedByteArray(0, 0, 0, 0, 0, 0)
+name = &"selected"
+category = ""
+data_type = 0
+stride = 1
+
+[sub_resource type="Resource" id="Resource_p6kku"]
+script = ExtResource("7_un7br")
+data = PackedInt32Array(0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5)
+name = &"face_index"
+category = ""
+data_type = 1
+stride = 1
+
+[sub_resource type="Resource" id="Resource_2hnn0"]
+script = ExtResource("7_un7br")
+data = PackedInt32Array(0, 1, 2, 3, 7, 6, 5, 4, 1, 0, 4, 5, 2, 1, 5, 6, 3, 2, 6, 7, 0, 3, 7, 4)
+name = &"vertex_index"
+category = ""
+data_type = 1
+stride = 1
+
+[sub_resource type="Resource" id="Resource_elimu"]
+script = ExtResource("8_lac2u")
+data = PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+name = &"color"
+category = ""
+data_type = 4
+stride = 4
+
+[sub_resource type="Resource" id="Resource_iqerk"]
+script = ExtResource("8_lac2u")
+data = PackedFloat32Array(-1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1)
+name = &"normal"
+category = ""
+data_type = 6
+stride = 3
+
+[sub_resource type="Resource" id="Resource_68lqv"]
+script = ExtResource("8_lac2u")
+data = PackedFloat32Array(0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 0)
+name = &"position"
+category = ""
+data_type = 6
+stride = 3
+
+[sub_resource type="Resource" id="Resource_54wft"]
+script = ExtResource("6_tgn5g")
+data = PackedByteArray(0, 0, 0, 0, 0, 0, 0, 0)
+name = &"selected"
+category = ""
+data_type = 0
+stride = 1
+
+[sub_resource type="Resource" id="Resource_qk4e3"]
+script = ExtResource("9_5mk51")
+num_vertices = 8
+num_edges = 12
+num_faces = 6
+num_face_vertices = 24
+active_vertex = -1
+active_edge = -1
+active_face = -1
+active_face_vertex = -1
+edge_vertex_indices = PackedInt32Array(0, 1, 1, 2, 2, 3, 3, 0, 7, 6, 6, 5, 5, 4, 4, 7, 0, 4, 5, 1, 6, 2, 7, 3)
+edge_face_indices = PackedInt32Array(0, 2, 0, 3, 0, 4, 0, 5, 1, 4, 1, 3, 1, 2, 1, 5, 2, 5, 2, 3, 3, 4, 4, 5)
+face_vertex_count = PackedInt32Array(4, 4, 4, 4, 4, 4)
+face_vertex_indices = PackedInt32Array(0, 1, 2, 3, 7, 6, 5, 4, 1, 0, 4, 5, 2, 1, 5, 6, 3, 2, 6, 7, 0, 3, 7, 4)
+vertex_data = {
+"position": SubResource("Resource_68lqv"),
+"selected": SubResource("Resource_54wft")
+}
+edge_data = {
+"selected": SubResource("Resource_tq5bl")
+}
+face_data = {
+"color": SubResource("Resource_dt5c3"),
+"material_index": SubResource("Resource_nhoso"),
+"selected": SubResource("Resource_45ub4"),
+"uv_transform": SubResource("Resource_44u87"),
+"visible": SubResource("Resource_guolx")
+}
+face_vertex_data = {
+"color": SubResource("Resource_elimu"),
+"face_index": SubResource("Resource_p6kku"),
+"normal": SubResource("Resource_iqerk"),
+"vertex_index": SubResource("Resource_2hnn0")
+}
+
+[sub_resource type="Resource" id="Resource_0tr0f"]
+script = ExtResource("6_tgn5g")
+data = PackedByteArray(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+name = &"selected"
+category = ""
+data_type = 0
+stride = 1
+
+[sub_resource type="Resource" id="Resource_op808"]
+script = ExtResource("7_un7br")
+data = PackedInt32Array(-1, -1, -1, -1, -1, -1)
+name = &"material_index"
+category = ""
+data_type = 1
+stride = 1
+
+[sub_resource type="Resource" id="Resource_1eedh"]
+script = ExtResource("6_tgn5g")
+data = PackedByteArray(1, 1, 1, 1, 1, 1)
+name = &"visible"
+category = ""
+data_type = 0
+stride = 1
+
+[sub_resource type="Resource" id="Resource_cjbr8"]
+script = ExtResource("8_lac2u")
+data = PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+name = &"color"
+category = ""
+data_type = 4
+stride = 4
+
+[sub_resource type="Resource" id="Resource_ag0tb"]
+script = ExtResource("8_lac2u")
+data = PackedFloat32Array(1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0)
+name = &"uv_transform"
+category = ""
+data_type = 8
+stride = 6
+
+[sub_resource type="Resource" id="Resource_c44xm"]
+script = ExtResource("6_tgn5g")
+data = PackedByteArray(0, 0, 0, 0, 0, 0)
+name = &"selected"
+category = ""
+data_type = 0
+stride = 1
+
+[sub_resource type="Resource" id="Resource_h3msc"]
+script = ExtResource("7_un7br")
+data = PackedInt32Array(0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5)
+name = &"face_index"
+category = ""
+data_type = 1
+stride = 1
+
+[sub_resource type="Resource" id="Resource_6ugn0"]
+script = ExtResource("7_un7br")
+data = PackedInt32Array(0, 1, 2, 3, 7, 6, 5, 4, 1, 0, 4, 5, 2, 1, 5, 6, 3, 2, 6, 7, 0, 3, 7, 4)
+name = &"vertex_index"
+category = ""
+data_type = 1
+stride = 1
+
+[sub_resource type="Resource" id="Resource_yoo2r"]
+script = ExtResource("8_lac2u")
+data = PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+name = &"color"
+category = ""
+data_type = 4
+stride = 4
+
+[sub_resource type="Resource" id="Resource_3gjrs"]
+script = ExtResource("8_lac2u")
+data = PackedFloat32Array(-1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1)
+name = &"normal"
+category = ""
+data_type = 6
+stride = 3
+
+[sub_resource type="Resource" id="Resource_whpdp"]
+script = ExtResource("8_lac2u")
+data = PackedFloat32Array(0, 1, 0, 0, 1, 5, 0, 0, 5, 0, 0, 0, 1, 1, 0, 1, 1, 5, 1, 0, 5, 1, 0, 0)
+name = &"position"
+category = ""
+data_type = 6
+stride = 3
+
+[sub_resource type="Resource" id="Resource_x4e8b"]
+script = ExtResource("6_tgn5g")
+data = PackedByteArray(0, 0, 0, 0, 0, 0, 0, 0)
+name = &"selected"
+category = ""
+data_type = 0
+stride = 1
+
+[sub_resource type="Resource" id="Resource_552uo"]
+script = ExtResource("9_5mk51")
+num_vertices = 8
+num_edges = 12
+num_faces = 6
+num_face_vertices = 24
+active_vertex = -1
+active_edge = -1
+active_face = -1
+active_face_vertex = -1
+edge_vertex_indices = PackedInt32Array(0, 1, 1, 2, 2, 3, 3, 0, 7, 6, 6, 5, 5, 4, 4, 7, 0, 4, 5, 1, 6, 2, 7, 3)
+edge_face_indices = PackedInt32Array(0, 2, 0, 3, 0, 4, 0, 5, 1, 4, 1, 3, 1, 2, 1, 5, 2, 5, 2, 3, 3, 4, 4, 5)
+face_vertex_count = PackedInt32Array(4, 4, 4, 4, 4, 4)
+face_vertex_indices = PackedInt32Array(0, 1, 2, 3, 7, 6, 5, 4, 1, 0, 4, 5, 2, 1, 5, 6, 3, 2, 6, 7, 0, 3, 7, 4)
+vertex_data = {
+"position": SubResource("Resource_whpdp"),
+"selected": SubResource("Resource_x4e8b")
+}
+edge_data = {
+"selected": SubResource("Resource_0tr0f")
+}
+face_data = {
+"color": SubResource("Resource_cjbr8"),
+"material_index": SubResource("Resource_op808"),
+"selected": SubResource("Resource_c44xm"),
+"uv_transform": SubResource("Resource_ag0tb"),
+"visible": SubResource("Resource_1eedh")
+}
+face_vertex_data = {
+"color": SubResource("Resource_yoo2r"),
+"face_index": SubResource("Resource_h3msc"),
+"normal": SubResource("Resource_3gjrs"),
+"vertex_index": SubResource("Resource_6ugn0")
+}
+
+[node name="Node3D" type="Node3D"]
+
+[node name="WorldEnvironment" parent="." instance=ExtResource("1_ryurx")]
+
+[node name="Shapes" type="Node3D" parent="."]
+
+[node name="Floor" type="MeshInstance3D" parent="Shapes"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.25, 0)
+mesh = SubResource("BoxMesh_gd0ev")
+skeleton = NodePath("../..")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Shapes/Floor"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Shapes/Floor/StaticBody3D"]
+shape = SubResource("ConcavePolygonShape3D_l3jgu")
+
+[node name="Box" type="MeshInstance3D" parent="Shapes"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 1, -5)
+mesh = SubResource("BoxMesh_xc4gq")
+skeleton = NodePath("../..")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Shapes/Box"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Shapes/Box/StaticBody3D"]
+shape = SubResource("ConcavePolygonShape3D_vp4dy")
+
+[node name="Ramp" type="MeshInstance3D" parent="Shapes"]
+transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 5, 0, 0)
+mesh = SubResource("PrismMesh_rutao")
+skeleton = NodePath("../Box")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Shapes/Ramp"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Shapes/Ramp/StaticBody3D"]
+shape = SubResource("ConcavePolygonShape3D_j6kcl")
+
+[node name="Ramp2" type="MeshInstance3D" parent="Shapes"]
+transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 6.99567, 0, 0)
+mesh = SubResource("PrismMesh_xgyvt")
+skeleton = NodePath("../Box")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Shapes/Ramp2"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Shapes/Ramp2/StaticBody3D"]
+shape = SubResource("ConcavePolygonShape3D_3on7f")
+
+[node name="Ramp3" type="MeshInstance3D" parent="Shapes"]
+transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 8.98926, 0.00641155, -0.0120337)
+mesh = SubResource("PrismMesh_pjxqm")
+skeleton = NodePath("../Box")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Shapes/Ramp3"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Shapes/Ramp3/StaticBody3D"]
+shape = SubResource("ConcavePolygonShape3D_twqj1")
+
+[node name="Ramp4" type="MeshInstance3D" parent="Shapes"]
+transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 10.9824, 0.00641155, -0.0120337)
+mesh = SubResource("PrismMesh_7vbvq")
+skeleton = NodePath("../Box")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Shapes/Ramp4"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Shapes/Ramp4/StaticBody3D"]
+shape = SubResource("ConcavePolygonShape3D_giwo7")
+
+[node name="PlaneCrouch" type="MeshInstance3D" parent="Shapes"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.99187, 1.76036, 0.0171362)
+mesh = SubResource("BoxMesh_kfqdp")
+skeleton = NodePath("../..")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Shapes/PlaneCrouch"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Shapes/PlaneCrouch/StaticBody3D"]
+shape = SubResource("ConcavePolygonShape3D_bfvwj")
+
+[node name="Label3D" type="Label3D" parent="Shapes/PlaneCrouch"]
+transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 0, 1, 0)
+text = "Crouch"
+font_size = 64
+
+[node name="PlaneDontCrouch" type="MeshInstance3D" parent="Shapes"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.01176, 1.51358, 4.99973)
+mesh = SubResource("BoxMesh_kfqdp")
+skeleton = NodePath("../..")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Shapes/PlaneDontCrouch"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Shapes/PlaneDontCrouch/StaticBody3D"]
+shape = SubResource("ConcavePolygonShape3D_al2qp")
+
+[node name="Label3D2" type="Label3D" parent="Shapes/PlaneDontCrouch"]
+transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 0, 1.2, 0)
+text = "Don't crouch"
+font_size = 64
+
+[node name="PlaneDontCrouch2" type="MeshInstance3D" parent="Shapes"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.99268, 1.0651, 6.00499)
+mesh = SubResource("BoxMesh_kfqdp")
+skeleton = NodePath("../..")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Shapes/PlaneDontCrouch2"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Shapes/PlaneDontCrouch2/StaticBody3D"]
+shape = SubResource("ConcavePolygonShape3D_al2qp")
+
+[node name="Label3D2" type="Label3D" parent="Shapes/PlaneDontCrouch2"]
+transform = Transform3D(1.19249e-08, 0, -1, 0, 1, 0, 1, 0, 1.19249e-08, 0, 1.2, 0)
+text = "Jump on!"
+font_size = 64
+
+[node name="MeasureBoxCrouch" type="MeshInstance3D" parent="Shapes"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.49087, 0.760101, 2.49501)
+mesh = SubResource("BoxMesh_rqjw5")
+
+[node name="Label3D" type="Label3D" parent="Shapes/MeasureBoxCrouch"]
+transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 0, 1, 0)
+text = "1.5 meters"
+
+[node name="MeasureBoxStand" type="MeshInstance3D" parent="Shapes"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.49866, 0.911039, -2.49434)
+mesh = SubResource("BoxMesh_m0fo3")
+
+[node name="Label3D" type="Label3D" parent="Shapes/MeasureBoxStand"]
+transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 0, 1.12631, 0)
+text = "1.8 meters"
+
+[node name="CharacterBody3D" parent="." instance=ExtResource("4_rt82l")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.491748, 0.406272, 0.0619908)
+
+[node name="Blocks" type="Node3D" parent="."]
+
+[node name="block0" type="Node3D" parent="Blocks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, 10)
+script = ExtResource("5_q7nm1")
+mesh_vector_data = SubResource("Resource_qk4e3")
+
+[node name="Block_0" type="Node3D" parent="Blocks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, 11)
+script = ExtResource("5_q7nm1")
+mesh_vector_data = SubResource("Resource_552uo")
