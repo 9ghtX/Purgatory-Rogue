@@ -1,0 +1,14 @@
+[gd_resource type="Environment" load_steps=4 format=3 uid="uid://bomf1hs6m4prs"]
+
+[ext_resource type="Texture2D" uid="uid://b1jvh1ehiaebt" path="res://textures/industrial_sunset_puresky_4k.hdr" id="1_h7wpb"]
+
+[sub_resource type="PanoramaSkyMaterial" id="PanoramaSkyMaterial_87s8x"]
+panorama = ExtResource("1_h7wpb")
+
+[sub_resource type="Sky" id="Sky_ttq0c"]
+sky_material = SubResource("PanoramaSkyMaterial_87s8x")
+
+[resource]
+background_mode = 2
+sky = SubResource("Sky_ttq0c")
+ssao_enabled = true

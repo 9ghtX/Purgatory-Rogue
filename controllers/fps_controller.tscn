@@ -1,6 +1,7 @@
-[gd_scene load_steps=21 format=3 uid="uid://c3ffql15mo0aj"]
+[gd_scene load_steps=22 format=3 uid="uid://c3ffql15mo0aj"]
 
 [ext_resource type="Script" path="res://scripts/fps_controller.gd" id="1_ilsa3"]
+[ext_resource type="Script" path="res://addons/camera360/camera360.gd" id="2_vtce2"]
 [ext_resource type="Script" path="res://scripts/reticle.gd" id="3_hbqju"]
 [ext_resource type="Theme" uid="uid://dgsum1yjs5bmd" path="res://themes/test_theme.tres" id="4_m4maf"]
 [ext_resource type="Script" path="res://scripts/debug.gd" id="5_afokp"]
@@ -315,12 +316,19 @@ shape = SubResource("CapsuleShape3D_u6tj1")
 [node name="CameraController" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4, 0)
 
-[node name="Camera3D" type="Camera3D" parent="CameraController"]
-fov = 90.0
+[node name="Camera360" type="Camera3D" parent="CameraController"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.136189, 0)
+script = ExtResource("2_vtce2")
+fovx = 120.0
 
-[node name="ReflectionProbe" type="ReflectionProbe" parent="CameraController/Camera3D"]
+[node name="ReflectionProbe" type="ReflectionProbe" parent="CameraController"]
+transform = Transform3D(1, 0, 0, 0, -1, 0, 0, 0, 1, 0, 0, 0)
 update_mode = 1
 enable_shadows = true
+
+[node name="Camera3D" type="Camera3D" parent="CameraController"]
+visible = false
+fov = 90.0
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
 libraries = {

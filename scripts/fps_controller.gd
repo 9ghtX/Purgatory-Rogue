@@ -1,15 +1,12 @@
 class_name Player extends CharacterBody3D
 
-@export var SPEED_CROUCH : float = 2.0
-@export var JUMP_VELOCITY : float = 4.5
+@export var CAMERA_CONTROLLER : Node3D
+@export var ANIMATIONPLAYER : AnimationPlayer
+@export var CROUCH_SHAPECAST : ShapeCast3D
 
 @export var MOUSE_SENSITIVITY : float = 0.17
 @export var TILT_LOWER_LIMIT := deg_to_rad(-90.0)
 @export var TILT_UPPER_LIMIT := deg_to_rad(90.0)
-@export var CAMERA_CONTROLLER : Node3D
-
-@export var ANIMATIONPLAYER : AnimationPlayer
-@export var CROUCH_SHAPECAST : ShapeCast3D
 
 var _speed : float
 var _mouse_input : bool = false
@@ -18,6 +15,9 @@ var _tilt_input : float
 var _mouse_rotation : Vector3
 var _player_rotation : Vector3
 var _camera_rotation : Vector3
+
+var _speed_mod : float
+var _accel_mod : float
 
 var _current_rotation : float
 
@@ -66,9 +66,13 @@ func _ready():
 	CROUCH_SHAPECAST.add_exception($".")
 
 
-func _physics_process(delta):
+func _process(delta: float) -> void:
 	# Update camera movement based on mouse movement
 	_update_camera(delta)
+
+
+func _physics_process(delta):
+	pass
 
 
 func update_gravity(delta) -> void:
@@ -76,30 +80,35 @@ func update_gravity(delta) -> void:
 
 
 func update_input(speed: float, acceleration: float, deceleration: float) -> void:
-	Global.debug.add_property("Movement Speed", speed, 0)
+	Global.debug.add_property("Target movement speed", speed, 0)
 	
-	var acc_mod = ($PlayerAttributesSystem.DX - 10) * 0.05
-	var spd_mod = ($PlayerAttributesSystem.DX - 10) * 0.1
+	apply_attributes_mods()
 	
-	if !is_on_floor():
-		deceleration = 0.05
+	var modded_speed = speed  * (1 + _speed_mod) 
+	var modded_accel = acceleration  * (1 + _accel_mod) 
+	
+	Global.debug.add_property("Modded movement speed", modded_speed, 1)
+	
+	#if !is_on_floor():
+		#deceleration = 0.05
 	
 	var input_dir = Input.get_vector("move_left", "move_right", "move_forward", "move_backward")
 	
 	var direction = (transform.basis * Vector3(input_dir.x, 0, input_dir.y)).normalized()
 	
 	if direction:
-		velocity.x = lerp(
-			velocity.x, 
-			direction.x * speed  * (1 + spd_mod), 
-			acceleration * (1 + acc_mod))
-		velocity.z = lerp(
-			velocity.z, 
-			direction.z * speed  * (1 + spd_mod), 
-			acceleration * (1 + acc_mod))
+		velocity.x = lerp(velocity.x, direction.x * modded_speed, modded_accel)
+		velocity.z = lerp(velocity.z, direction.z * modded_speed, modded_accel)
 	else:
 		velocity.x = move_toward(velocity.x, 0, deceleration)
 		velocity.z = move_toward(velocity.z, 0, deceleration)
+	
+	Global.debug.add_property("Current movement speed", abs(velocity.x) + abs(velocity.z), 1)
+
+
+func apply_attributes_mods():
+	_speed_mod = ($PlayerAttributesSystem.DX - 10) * 0.1
+	_accel_mod = ($PlayerAttributesSystem.DX - 10) * 0.05
 
 
 func update_velocity() -> void:
